@@ -20,7 +20,7 @@ const PlayingScene = new Phaser.Class({
 
 
   preload: function() {
-    this.load.spritesheet("tileset", "assets/img/tileset.png", {
+    this.load.spritesheet("tileset", "Assets/img/tileset.png", {
       frameWidth: 30,
       frameHeight: 30
     });
@@ -186,6 +186,6 @@ const PlayingScene = new Phaser.Class({
 },
 
   aliensShoot: function () {
-    
+
   }
 })
