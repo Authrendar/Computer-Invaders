@@ -52,32 +52,25 @@ const PlayingScene = new Phaser.Class({
 
 
 
-    playerBullets = this.physics.add.group();
-    playerBullets.physicsBodyType = Phaser.Physics.ARCADE;
-    // Space input event - player shooting
-    keySpace.on('down', function(event) {
-      playerBullets.add(new Bullet({
-        scene: this,
-        x: player.x,
-        y: player.y,
-        tileset: 'tileset',
-        frame: 250
-      }, 'bullet'));
-    }, this);
+
+
+    this.playerShoot();
+
+
 
     keyEsc.on('down', function(event) {
       // this.scene.switch('')
     }, this);
 
-    this.physics.add.collider(aliensGroup, playerBullets, this.alienHit, null, this);
 
+    this.createCollider();
   },
 
   update: function(time, delta) {
     scoreText.setText("Score " + player.scores);
     liveText.setText("Lives: " + player.lives);
 
-    this.playerShoot();
+    this.createPlayerBullets();
 
     if (keyLeft.isDown)
       player.move(false);
@@ -93,16 +86,6 @@ const PlayingScene = new Phaser.Class({
 
 
   },
-
-  playerShoot: function() {
-
-    for (let i = 0; i < playerBullets.getChildren().length; i++) {
-      playerBullets.children.entries[i].move();
-
-      if (playerBullets.children.entries[i].y < 10)
-        playerBullets.children.entries[i].destroy();
-    }
-  },
   createText: function() {
     scoreText = this.add.text(10, 10, '', {
       font: '40px font'
@@ -112,7 +95,49 @@ const PlayingScene = new Phaser.Class({
       font: '40px font'
     });
     liveText.tint = teal;
-  },
+  }, // Creates User Interface
+
+  createCollider: function() {
+    this.physics.add.collider(aliensGroup, playerBullets, this.alienHit, null, this);
+  }, //Creates collider between gameobjects
+
+  createPlayerBullets: function() {
+
+    for (let i = 0; i < playerBullets.getChildren().length; i++) {
+      playerBullets.children.entries[i].move();
+
+      if (playerBullets.children.entries[i].y < 10)
+        playerBullets.children.entries[i].destroy();
+    }
+  }, //Creates player bullets
+
+  playerShoot: function() {
+
+    playerBullets = this.physics.add.group();
+    playerBullets.physicsBodyType = Phaser.Physics.ARCADE;
+
+    keySpace.on('down', function(event) {
+      playerBullets.add(new Bullet({
+        scene: this,
+        x: player.x,
+        y: player.y,
+        tileset: 'tileset',
+        frame: 250
+      }, 'bullet'));
+    }, this);
+  }, //Shooting function for Player
+
+  setPlayerScore: function(alien) {
+    if (alien.color == red)
+      player.scores += 60;
+    if (alien.color == orange)
+      player.scores += 45;
+    if (alien.color == yellow)
+      player.scores += 30;
+    if (alien.color == green)
+      player.scores += 15;
+  }, // After killed an alien, player gets some scores
+
   createAliens: function() {
 
     aliensGroup = this.physics.add.group();
@@ -168,7 +193,7 @@ const PlayingScene = new Phaser.Class({
 
 
     this.aliensMovement();
-  },
+  }, //Creates Aliens
 
   aliensMovement: function() {
 
@@ -201,7 +226,7 @@ const PlayingScene = new Phaser.Class({
       ]
 
     });
-  },
+  }, //Aliens movement - right, down, left, down etc...
 
   aliensShoot: function() {
 
@@ -220,16 +245,7 @@ const PlayingScene = new Phaser.Class({
       })
     });
 
-  },
+  }, //Checking collision between player bullets and aliens, also destroying those objects
 
-  setPlayerScore: function (alien) {
-    if(alien.color == red)
-    player.scores+=60;
-    if(alien.color == orange)
-    player.scores+=45;
-    if(alien.color == yellow)
-    player.scores+=30;
-    if(alien.color == green)
-    player.scores+=15;
-  }
+
 })
