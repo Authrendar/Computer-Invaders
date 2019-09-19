@@ -34,20 +34,26 @@ const PlayingScene = new Phaser.Class({
 
   create: function() {
 
+
     counter = 0;
     isPlaying = true;
     player = new Player({
       scene: this,
       x: gameConfig.width / 2,
-      y: gameConfig.height - 50,
+      y: gameConfig.height - 100,
       tileset: 'tileset',
       frame: 30
     }, 'player', 3, 0);
 
+    player.physicsBodyType = Phaser.Physics.ARCADE;
+
     this.createAliens();
     this.createText();
 
+
+
     playerBullets = this.physics.add.group();
+    playerBullets.physicsBodyType = Phaser.Physics.ARCADE;
     // Space input event - player shooting
     keySpace.on('down', function(event) {
       playerBullets.add(new Bullet({
@@ -59,9 +65,11 @@ const PlayingScene = new Phaser.Class({
       }, 'bullet'));
     }, this);
 
-    keyEsc.on('down', function (event) {
+    keyEsc.on('down', function(event) {
       // this.scene.switch('')
     }, this);
+
+    this.physics.add.collider(aliensGroup, playerBullets, this.alienHit, null, this);
 
   },
 
@@ -76,16 +84,18 @@ const PlayingScene = new Phaser.Class({
     if (keyRight.isDown)
       player.move(true);
 
-      if(!isPlaying)
-      {
+    if (!isPlaying) {
       score = player.scores;
       this.scene.stop();
       this.scene.start('GameOver');
-      }
+    }
+
+
 
   },
 
   playerShoot: function() {
+
     for (let i = 0; i < playerBullets.getChildren().length; i++) {
       playerBullets.children.entries[i].move();
 
@@ -106,41 +116,50 @@ const PlayingScene = new Phaser.Class({
   createAliens: function() {
 
     aliensGroup = this.physics.add.group();
-    for(let j=1; j<=4; j++){
-      for(let i=1; i<=20; i++){
-        switch(j){
+    aliensGroup.physicsBodyType = Phaser.Physics.ARCADE;
+    for (let j = 1; j <= 4; j++) {
+      for (let i = 1; i <= 20; i++) {
+        switch (j) {
           case 1:
 
-          aliensGroup.add(new Alien({scene: this,
-          x: 30*i+20,
-          y: 150,
-          tileset: 'tileset',
-          frame: 2}, 50, red));
-          break;
+            aliensGroup.add(new Alien({
+              scene: this,
+              x: 30 * i + 20,
+              y: 150,
+              tileset: 'tileset',
+              frame: 2
+            }, 50, red));
+            break;
 
           case 2:
-          aliensGroup.add(new Alien({scene: this,
-          x: 30*i+20,
-          y: 185,
-          tileset: 'tileset',
-          frame: 2}, 35, orange));
-          break;
+            aliensGroup.add(new Alien({
+              scene: this,
+              x: 30 * i + 20,
+              y: 185,
+              tileset: 'tileset',
+              frame: 2
+            }, 35, orange));
+            break;
 
           case 3:
-          aliensGroup.add(new Alien({scene: this,
-          x: 30*i+20,
-          y: 220,
-          tileset: 'tileset',
-          frame: 2}, 35, yellow));
-          break;
+            aliensGroup.add(new Alien({
+              scene: this,
+              x: 30 * i + 20,
+              y: 220,
+              tileset: 'tileset',
+              frame: 2
+            }, 35, yellow));
+            break;
 
           case 4:
-          aliensGroup.add(new Alien({scene: this,
-          x: 30*i+20,
-          y: 255,
-          tileset: 'tileset',
-          frame: 2}, 35, green));
-          break;
+            aliensGroup.add(new Alien({
+              scene: this,
+              x: 30 * i + 20,
+              y: 255,
+              tileset: 'tileset',
+              frame: 2
+            }, 35, green));
+            break;
         }
 
       }
@@ -151,7 +170,7 @@ const PlayingScene = new Phaser.Class({
     this.aliensMovement();
   },
 
-  aliensMovement: function () {
+  aliensMovement: function() {
 
     enemyMovementTimeline = this.tweens.timeline({
       totalDuration: 60000,
@@ -159,8 +178,7 @@ const PlayingScene = new Phaser.Class({
         counter++;
         if (counter >= 1)
           enemyMovementTimeline.play();
-        if (counter == 3)
-        {
+        if (counter == 3) {
           isPlaying = false;
         }
 
@@ -183,9 +201,35 @@ const PlayingScene = new Phaser.Class({
       ]
 
     });
-},
+  },
 
-  aliensShoot: function () {
+  aliensShoot: function() {
 
+  },
+
+  alienHit: function() {
+
+    playerBullets.children.each(bullet => {
+      aliensGroup.children.each(alien => {
+
+        if (alien.getBounds().contains(bullet.x, bullet.y)) {
+          this.setPlayerScore(alien);
+          alien.destroy(alien, true, true);
+          bullet.destroy(bullet, true, true);
+        }
+      })
+    });
+
+  },
+
+  setPlayerScore: function (alien) {
+    if(alien.color == red)
+    player.scores+=60;
+    if(alien.color == orange)
+    player.scores+=45;
+    if(alien.color == yellow)
+    player.scores+=30;
+    if(alien.color == green)
+    player.scores+=15;
   }
 })
