@@ -9,7 +9,10 @@ class Bullet extends Phaser.GameObjects.Sprite{
     this.key=key;
   }
 
-  move(){
+  move(down){
+    if(!down)
     this.y-=5;
+    else
+    this.y+=5;
   }
 }
