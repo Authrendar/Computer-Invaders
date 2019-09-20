@@ -13,7 +13,10 @@ const PlayingScene = new Phaser.Class({
       this.player;
       this.playerBullets;
       this.aliensGroup;
-      this.enemyMovementTimeline;
+      this.alienBulletsGroup;
+      this.alienMovementTimeline;
+      this.alienShootTimeline;
+      this.alienIndex;
       this.counter;
       this.isPlaying;
     },
@@ -33,8 +36,6 @@ const PlayingScene = new Phaser.Class({
   },
 
   create: function() {
-
-
     counter = 0;
     isPlaying = true;
     player = new Player({
@@ -49,17 +50,13 @@ const PlayingScene = new Phaser.Class({
 
     this.createAliens();
     this.createText();
-
-
-
-
-
     this.playerShoot();
+    this.aliensShoot();
 
 
 
     keyEsc.on('down', function(event) {
-      // this.scene.switch('')
+      this.scene.switch('Pause')
     }, this);
 
 
@@ -70,20 +67,23 @@ const PlayingScene = new Phaser.Class({
     scoreText.setText("Score " + player.scores);
     liveText.setText("Lives: " + player.lives);
 
-    this.createPlayerBullets();
+    this.movePlayerBullets();
+    this.moveAlienBullets();
 
     if (keyLeft.isDown)
       player.move(false);
     if (keyRight.isDown)
       player.move(true);
 
+    if (player.lives <= 0) {
+      isPlaying = false;
+      isLost = true;
+    }
     if (!isPlaying) {
       score = player.scores;
-      this.scene.stop();
+      this.scene.restart();
       this.scene.start('GameOver');
     }
-
-
 
   },
   createText: function() {
@@ -99,16 +99,16 @@ const PlayingScene = new Phaser.Class({
 
   createCollider: function() {
     this.physics.add.collider(aliensGroup, playerBullets, this.alienHit, null, this);
+    this.physics.add.collider(alienBulletsGroup, player, this.playerHit, null, this);
   }, //Creates collider between gameobjects
 
-  createPlayerBullets: function() {
+  movePlayerBullets: function() {
 
-    for (let i = 0; i < playerBullets.getChildren().length; i++) {
-      playerBullets.children.entries[i].move();
-
-      if (playerBullets.children.entries[i].y < 10)
-        playerBullets.children.entries[i].destroy();
-    }
+    playerBullets.children.each(bullet => {
+      bullet.move();
+      if (bullet.y < 10)
+        bullet.destroy();
+    });
   }, //Creates player bullets
 
   playerShoot: function() {
@@ -127,21 +127,26 @@ const PlayingScene = new Phaser.Class({
     }, this);
   }, //Shooting function for Player
 
+  playerHit: function() {
+
+    alienBulletsGroup.children.each(alienBullet => {
+      if (player.getBounds().contains(alienBullet.x, alienBullet.y)) {
+        alienBullet.destroy();
+        player.lives--;
+      }
+    });
+  },
+
   setPlayerScore: function(alien) {
-    if (alien.color == red)
-      player.scores += 60;
-    if (alien.color == orange)
-      player.scores += 45;
-    if (alien.color == yellow)
-      player.scores += 30;
-    if (alien.color == green)
-      player.scores += 15;
+
+    player.scores += alien.score;
   }, // After killed an alien, player gets some scores
 
   createAliens: function() {
 
     aliensGroup = this.physics.add.group();
     aliensGroup.physicsBodyType = Phaser.Physics.ARCADE;
+
     for (let j = 1; j <= 4; j++) {
       for (let i = 1; i <= 20; i++) {
         switch (j) {
@@ -153,7 +158,7 @@ const PlayingScene = new Phaser.Class({
               y: 150,
               tileset: 'tileset',
               frame: 2
-            }, 50, red));
+            }, red, 60));
             break;
 
           case 2:
@@ -163,7 +168,7 @@ const PlayingScene = new Phaser.Class({
               y: 185,
               tileset: 'tileset',
               frame: 2
-            }, 35, orange));
+            }, orange, 45));
             break;
 
           case 3:
@@ -173,7 +178,7 @@ const PlayingScene = new Phaser.Class({
               y: 220,
               tileset: 'tileset',
               frame: 2
-            }, 35, yellow));
+            }, yellow, 30));
             break;
 
           case 4:
@@ -183,7 +188,7 @@ const PlayingScene = new Phaser.Class({
               y: 255,
               tileset: 'tileset',
               frame: 2
-            }, 35, green));
+            }, green, 15));
             break;
         }
 
@@ -197,13 +202,14 @@ const PlayingScene = new Phaser.Class({
 
   aliensMovement: function() {
 
-    enemyMovementTimeline = this.tweens.timeline({
+    alienMovementTimeline = this.tweens.timeline({
       totalDuration: 60000,
       onComplete: function() {
         counter++;
         if (counter >= 1)
-          enemyMovementTimeline.play();
+          alienMovementTimeline.play();
         if (counter == 3) {
+          isLost = true;
           isPlaying = false;
         }
 
@@ -229,7 +235,37 @@ const PlayingScene = new Phaser.Class({
   }, //Aliens movement - right, down, left, down etc...
 
   aliensShoot: function() {
+    alienBulletsGroup = this.physics.add.group();
 
+    alienShootTimeline = this.time.addEvent({
+      delay: 800,
+      callback: () => {
+        alienIndex = Phaser.Math.Between(0, aliensGroup.getChildren().length - 1);
+
+        alienBulletsGroup.add(new Bullet({
+          scene: this,
+          x: aliensGroup.children.entries[alienIndex].x,
+          y: aliensGroup.children.entries[alienIndex].y,
+          tileset: 'tileset',
+          frame: 58
+        }))
+
+      },
+      loop: true
+    });
+
+
+  },
+
+  moveAlienBullets: function() {
+
+    alienBulletsGroup.children.each(alienBullet => {
+      alienBullet.tint = purple;
+      alienBullet.move(true);
+
+      if (alienBullet.y > 590)
+        alienBullet.destroy();
+    });
   },
 
   alienHit: function() {
