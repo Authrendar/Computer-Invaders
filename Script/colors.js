@@ -6,3 +6,4 @@ const yellow = 0xffc300;
 const orange = 0xff7f50;
 const purple = 0x8a2be2;
 const teal = 0x34ebe1;
+const darkRed = 0x820604;

@@ -12,6 +12,7 @@ const Pause = new Phaser.Class({
         key: 'Pause'
       });
 
+      this.pauseText;
     },
 
 
@@ -21,14 +22,15 @@ const Pause = new Phaser.Class({
   },
 
   create: function() {
-    console.log("Pause");
-
+      welcomeText = this.add.text(85, 20, '', fontStyle);
+      pauseText = this.add.text(330, 200, '', {font: '55px font'});
     keyEsc.on('down', function(event) {
       this.scene.switch('PlayingScene');
     }, this);
   },
 
   update: function(time, delta) {
-
+    welcomeText.setText("Computer Invaders");
+    pauseText.setText("Pause");
   }
 })
