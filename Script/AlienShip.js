@@ -5,6 +5,9 @@ class AlienShip extends Phaser.Physics.Arcade. Sprite{
     config.scene.physics.add.existing(this);
     this.physicsBodyType = Phaser.Physics.ARCADE;
     this.body.setSize(20,20);
+    this.score = score;
+    this.color = color;
+    this.tint = color;
 }
 
 }

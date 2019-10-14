@@ -9,16 +9,29 @@ const PlayingScene = new Phaser.Class({
     function PlayingScene() {
       Phaser.Scene.call(this, {
         key: 'PlayingScene'
-      });
-      this.player;
-      this.playerBullets;
-      this.aliensGroup;
-      this.alienBulletsGroup;
-      this.alienMovementTimeline;
-      this.alienShootTimeline;
-      this.alienIndex;
-      this.counter;
-      this.isPlaying;
+      }); {
+        this.player;
+        this.playerBullets;
+        this.playerShootTimeline;
+        this.isShooting;
+
+        this.aliensGroup;
+        this.alienBulletsGroup;
+        this.alienMovementTimeline;
+        this.alienShootTimeline;
+        this.alienIndex;
+
+        this.alienShipMovementTimeline;
+        this.alienShipWaitTimeline;
+        this.alienShipBulletsGroup;
+        this.alienShipShootTimeline;
+        this.alienShip;
+
+        this.barrierGroup;
+
+        this.counter;
+        this.isPlaying;
+      }
     },
 
 
@@ -38,20 +51,34 @@ const PlayingScene = new Phaser.Class({
   create: function() {
     counter = 0;
     isPlaying = true;
+    isShooting = false;
     player = new Player({
       scene: this,
       x: gameConfig.width / 2,
-      y: gameConfig.height - 100,
+      y: gameConfig.height - 60,
       tileset: 'tileset',
       frame: 30
     }, 'player', 3, 0);
 
     player.physicsBodyType = Phaser.Physics.ARCADE;
 
+    alienShip = new AlienShip({
+      scene: this,
+      x: -20,
+      y: 100,
+      tileset: 'tileset',
+      frame: 15
+    }, red, 500);
+
+
+
     this.createAliens();
+    this.createBarriers();
     this.createText();
     this.playerShoot();
     this.aliensShoot();
+    this.moveAlienShip();
+    this.alienShipShoot();
 
 
 
@@ -69,6 +96,9 @@ const PlayingScene = new Phaser.Class({
 
     this.movePlayerBullets();
     this.moveAlienBullets();
+    this.moveAlienShipBullets();
+
+    alienShip.angle += 10;
 
     if (keyLeft.isDown)
       player.move(false);
@@ -79,6 +109,7 @@ const PlayingScene = new Phaser.Class({
       isPlaying = false;
       isLost = true;
     }
+
     if (!isPlaying) {
       score = player.scores;
       this.scene.restart();
@@ -100,6 +131,11 @@ const PlayingScene = new Phaser.Class({
   createCollider: function() {
     this.physics.add.collider(aliensGroup, playerBullets, this.alienHit, null, this);
     this.physics.add.collider(alienBulletsGroup, player, this.playerHit, null, this);
+    this.physics.add.collider(alienShipBulletsGroup, player, this.playerHit, null, this);
+    this.physics.add.collider(alienBulletsGroup, barrierGroup, this.barrierHit, null, this);
+    this.physics.add.collider(playerBullets, barrierGroup, this.barrierHit, null, this);
+    this.physics.add.collider(alienShipBulletsGroup, barrierGroup, this.barrierHit, null, this);
+    this.physics.add.collider(playerBullets, alienShip, this.alienShipHit, null, this);
   }, //Creates collider between gameobjects
 
   movePlayerBullets: function() {
@@ -117,6 +153,8 @@ const PlayingScene = new Phaser.Class({
     playerBullets.physicsBodyType = Phaser.Physics.ARCADE;
 
     keySpace.on('down', function(event) {
+      if(!isShooting)
+      {
       playerBullets.add(new Bullet({
         scene: this,
         x: player.x,
@@ -124,6 +162,14 @@ const PlayingScene = new Phaser.Class({
         tileset: 'tileset',
         frame: 250
       }, 'bullet'));
+      isShooting = true;
+      playerShootTimeline = this.time.addEvent({
+        delay: 600,
+        callback: ()=>{
+          isShooting = false;
+        },
+      })
+    }
     }, this);
   }, //Shooting function for Player
 
@@ -133,6 +179,13 @@ const PlayingScene = new Phaser.Class({
       if (player.getBounds().contains(alienBullet.x, alienBullet.y)) {
         alienBullet.destroy();
         player.lives--;
+      }
+    });
+
+    alienShipBulletsGroup.children.each(alienShipBullet => {
+      if (player.getBounds().contains(alienShipBullet.x, alienShipBullet.y)) {
+        alienShipBullet.destroy();
+        player.lives -= 2;
       }
     });
   },
@@ -283,5 +336,107 @@ const PlayingScene = new Phaser.Class({
 
   }, //Checking collision between player bullets and aliens, also destroying those objects
 
+  moveAlienShip: function() {
+
+
+    alienShipWaitTimeline = this.time.addEvent({
+      delay: 15000,
+      callback: () => {
+        alienShipMovementTimeline = this.tweens.timeline({
+          totalDuration: 4000,
+          onComplete: function() {
+            alienShip.x = -20;
+          },
+          targets: alienShip,
+          tweens: [{
+            x: 800
+          }],
+
+        });
+      },
+
+      repeat: -1
+    });
+
+  },
+
+  alienShipShoot: function() {
+
+    alienShipBulletsGroup = this.physics.add.group();
+
+
+    alienShipShootTimeline = this.time.addEvent({
+      delay: 800,
+      callback: () => {
+        if (alienShip.active) {
+          alienShipBulletsGroup.add(new Bullet({
+            scene: this,
+            x: alienShip.x,
+            y: alienShip.y,
+            tileset: 'tileset',
+            frame: 173
+          }))
+        }
+      },
+      repeat: -1
+    })
+
+  },
+
+  alienShipHit: function() {
+    playerBullets.children.each(playerBullet => {
+      if (alienShip.getBounds().contains(playerBullet.x, playerBullet.y)) {
+        this.setPlayerScore(alienShip);
+        alienShip.destroy(alienShip, true, true);
+        playerBullet.destroy(playerBullet, true, true);
+      }
+    })
+  },
+
+  moveAlienShipBullets: function() {
+    alienShipBulletsGroup.children.each(alienShipBullet => {
+      alienShipBullet.tint = red;
+      alienShipBullet.move(true);
+
+      if (alienShipBullet.y > 590)
+        alienShipBullet.destroy();
+    })
+  },
+
+  createBarriers: function() {
+    barrierGroup = this.physics.add.group();
+
+    for (let i = 1; i <= 5; i++) {
+      barrierGroup.add(new Barrier({
+        scene: this,
+        x: 130 * i + 10,
+        y: 470,
+        tileset: 'tileset',
+        frame: 219
+      }, white));
+    }
+  },
+
+  barrierHit: function() {
+
+    barrierGroup.children.each(barrier => {
+      alienShipBulletsGroup.children.each(alienShipBullet => {
+        if (barrier.getBounds().contains(alienShipBullet.x, alienShipBullet.y)) {
+          alienShipBullet.destroy();
+          barrier.countHits();
+        }
+      })
+      playerBullets.children.each(playerBullet => {
+        if (playerBullet.getBounds().contains(barrier.x, barrier.y))
+          playerBullet.destroy();
+      })
+      alienBulletsGroup.children.each(alienBullet => {
+        if (barrier.getBounds().contains(alienBullet.x, alienBullet.y)) {
+          alienBullet.destroy();
+          barrier.countHits();
+        }
+      })
+    });
+  }
 
 })

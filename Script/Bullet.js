@@ -4,7 +4,7 @@ class Bullet extends Phaser.GameObjects.Sprite{
     config.scene.add.existing(this);
     config.scene.physics.add.existing(this);
 
-    this.body.setSize(10, 10);
+    this.body.setSize(15, 10);
 
     this.key=key;
   }
